@@ -15,7 +15,6 @@ variables:
 
 stages:
 - stage: Build
-  dependsOn: Setup
   jobs:
   - job: Build_and_Push
     steps:
