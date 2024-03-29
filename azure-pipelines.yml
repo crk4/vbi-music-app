@@ -9,7 +9,7 @@ resources:
 - repo: self
 
 variables:
-  acrLogin: 'musicapp1.azurecr.io'
+  acrLogin: 'music-app'
   imageName: 'musicapp1.azurecr.io/music-app:latest'
   vmIpAddress: '13.92.255.53'
 
