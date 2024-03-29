@@ -9,21 +9,37 @@ resources:
 - repo: self
 
 variables:
-  tag: '$(Build.BuildId)'
+  acrLogin: 'musicapp1.azurecr.io'
+  imageName: 'musicapp1.azurecr.io/music-app:latest'
+  vmIpAddress: '13.92.255.53'
 
 stages:
 - stage: Build
-  displayName: Build image
+  dependsOn: Setup
   jobs:
-  - job: Build
-    displayName: Build
-    pool:
-      vmImage: ubuntu-latest
+  - job: Build_and_Push
     steps:
-    - task: Docker@2
-      displayName: Build an image
-      inputs:
-        command: build
-        dockerfile: '**/Dockerfile'
-        tags: |
-          $(tag)
+    - script: |
+        docker login $(acrLogin)  # Login to ACR if used
+        docker build -t $(imageName) .
+        docker push $(imageName)  # Push to ACR if used
+    - publish: $(System.DefaultWorkingDirectory)/dockerfile  # Optional: publish Dockerfile for reference
+
+- stage: Deploy
+  dependsOn: Build
+  jobs:
+  - deployment: Deploy_to_VM
+    condition: succeeded()  # Only deploy if build succeeds
+    environment: 'production'  # Or your desired environment name
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - script: |
+              ssh $(vmIpAddress) -o StrictHostKeyChecking=no << EOF
+              docker pull $(imageName)  # Or pull from ACR if used
+              docker stop musicapp || true  # Gracefully stop existing container
+              docker rm musicapp || true   # Remove existing container
+              docker run -d --name musicapp -p 80:80 $(imageName)
+              EOF
+            displayName: 'Deploy container to VM'
